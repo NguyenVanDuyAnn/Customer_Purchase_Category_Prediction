@@ -139,5 +139,20 @@ Retail-Customer-Churn-Analysis-master/
 
 <img width="1919" height="1023" alt="image" src="https://github.com/user-attachments/assets/88204c43-7093-4f50-a423-3c9156d47bea" />
 
+<img width="1919" height="1029" alt="image" src="https://github.com/user-attachments/assets/381c0c09-53c8-426c-8c2a-5ad3afb306cd" />
+
+<img width="1913" height="1021" alt="image" src="https://github.com/user-attachments/assets/0ee5cfb3-19c7-4484-a4ed-f2e42b51c3a8" />
+
+<img width="1917" height="1023" alt="image" src="https://github.com/user-attachments/assets/9787c8ff-fed3-4ed4-b072-9858e6d1ef8b" />
+
+<img width="1914" height="1031" alt="image" src="https://github.com/user-attachments/assets/59797079-33dc-4a6b-940d-af5ae1eca535" />
+
+<img width="1919" height="1021" alt="image" src="https://github.com/user-attachments/assets/0b1f91ec-7b50-44a6-8af4-81da0c7b168c" />
+
+
+
+
+
+
 
 
