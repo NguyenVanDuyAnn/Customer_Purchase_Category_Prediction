@@ -1,0 +1,442 @@
+=== notebooks/1_Data_Generation.ipynb
+--- markdown 0 ---
+
+# 📦 Notebook 1 — Data Generation & Understanding
+
+**Mục tiêu notebook:**
+- Load `pred_repurchase_dataset.csv` (đã xử lý anti-leakage) và kiểm tra schema
+- Hiểu cấu trúc 20 cột và ý nghĩa business của từng cột
+- Mô tả bài toán dự đoán tái mua hàng (binary classification)
+- Giải thích nguồn gốc nhãn `repurchase` (Otsu thresholding T*=4.02 trên purchase_count)
+- Lưu bản copy vào `data/synthetic_data.csv` để EDA ở Notebook 2
+
+---
+
+## 🗺️ Lộ trình 15 bước — Pipeline ML đầy đủ
+
+| # | Bước | Notebook |
+|:-:|------|----------|
+| **1** | **Đặt vấn đề** | **📌 NB1** |
+| **2** | **Thu thập dữ liệu** | **📌 NB1** |
+| 3 | Tiền xử lý & EDA | NB2 |
+| 4 | Định nghĩa Target | NB2 |
+| 5 | Feature Engineering | NB3 |
+| 6 | Feature Selection | NB3 |
+| 7 | Train/Test Split + Scale | NB3 |
+| 8 | Chọn mô hình | NB3 |
+| 9 | Huấn luyện | NB3 |
+| 10 | Đánh giá baseline | NB3 |
+| 11 | Feature Reduction | NB3 |
+| 12 | So sánh & Phân tích sâu | NB4 |
+| 13 | Kết luận Model tốt nhất | NB4 |
+| 14 | Threshold Optimization | NB4 |
+| 15 | KPI Check | NB4 |
+
+> 💡 **Notebook này bao phủ: Bước 1 & 2 / 15**
+--- markdown 2 ---
+
+---
+## 📌 Bước 1 / 15 — Đặt vấn đề & Mô tả Bài toán Business
+
+### ❓ Câu hỏi kinh doanh cốt lõi
+
+> **"Dựa trên hành vi tương tác của khách hàng với một category sản phẩm,**  
+> **khách có quay lại mua thêm sản phẩm trong chính category đó không?"**
+
+Một nền tảng e-commerce Việt Nam muốn **cá nhân hóa chiến lược giữ chân khách hàng** theo từng danh mục sản phẩm. Thay vì chạy khuyến mãi đại trà, họ cần biết: *"Khách hàng X có khả năng mua lại trong danh mục Y không?"*
+
+---
+
+### 🏢 Bối cảnh & Business Impact
+
+- **Vấn đề:** ~67% khách không quay lại category sau lần mua đầu → chi phí acquisition cao bị lãng phí
+- **Giải pháp:** Dự đoán sớm khách nào có khả năng tái mua category → gửi voucher/reminder đúng người
+- **ROI:** Gửi voucher đại trà tốn 30,000 VNĐ/người × toàn bộ khách; nếu target đúng → chỉ gửi ~33% → tiết kiệm ~67% chi phí CRM
+
+| Dự đoán | Thực tế | Hành động | Hệ quả |
+|---------|---------|-----------|--------|
+| 1 (tái mua) | 1 ✅ | Gửi voucher loyalty → giữ chân | Hiệu quả cao |
+| 1 (tái mua) | 0 ❌ | Voucher gửi nhầm | Chi phí marketing lãng phí |
+| 0 (không tái mua) | 1 ❌ | Không gửi gì | Bỏ lỡ cơ hội upsell → mất doanh thu |
+
+---
+
+### 🔍 Hiểu đúng "Tái mua" trong bài toán n
+--- markdown 3 ---
+
+---
+## 📌 Bước 2 / 15 — Thu thập dữ liệu (Data Collection)
+
+**Nguồn dữ liệu:** `pred_repurchase_dataset.csv` — E-commerce behavioral dataset
+
+### Cấu trúc dữ liệu
+
+> **Mỗi dòng = 1 user × 1 category** — aggregate toàn bộ hành vi của user trong category đó.
+
+| Nhóm cột | Ví dụ | Vai trò |
+|----------|-------|---------|
+| **Behavioral** | `total_view`, `total_click`, `total_cart`, `total_wishlist` | Tín hiệu hành vi trong category |
+| **Purchase aggregate** | `avg_purchase_value`, `avg_price`, `avg_discount` | Thống kê giá/mua trong category |
+| **Category profile** | `category_share`, `user_total_categories`, `unique_brands` | Mức độ tập trung vào category |
+| **User profile** | `age`, `gender`, `membership_tier`, `region` | Đặc điểm demographics |
+| **Rating** | `avg_rating` | Hài lòng trung bình với sản phẩm trong category (~28% missing) |
+| **Target** | `repurchase` | 0/1 — tái mua trong category không? |
+
+**Quy mô:** 61,728 cặp (user, category) × 20 cột  
+**Class distribution:** 67.2% không tái mua (label=0) · 32.8% tái mua (label=1)  
+**Otsu T\* = 4.02** → `purchase_count ≥ 5` → label=1
+
+**Anti-leakage đã xử lý:**
+- `purchase_count` → **ĐÃ XÓA** (dùng để tạo nhãn — nếu giữ = bi
+--- markdown 11 ---
+## 3. Giải thích nguồn gốc nhãn `repurchase`
+--- markdown 12 ---
+### 🏷️ Cơ chế gán nhãn: Otsu Thresholding trực tiếp trên `purchase_count`
+
+Nhãn `repurchase` được xây dựng **hoàn toàn tự động** từ biến `purchase_count` — số lần khách hàng đã mua trong cùng `product_category` — qua 2 bước chặt chẽ về mặt thống kê.
+
+---
+
+#### Tại sao chọn `purchase_count`?
+
+`purchase_count` là tín hiệu **trực tiếp và mạnh nhất** về hành vi tái mua:
+- Mỗi dòng = 1 cặp `(user_id, product_category)` duy nhất
+- `purchase_count` = số lần thực sự đã mua trong category đó
+- Khách mua nhiều lần → **định nghĩa nghiệp vụ** của hành vi tái mua (RFM Frequency)
+
+---
+
+#### Bước 1 — Otsu Thresholding tự động (Otsu, 1979)
+
+Thuật toán **Otsu** tìm ngưỡng $T^*$ tối đa hoá **inter-class variance** giữa 2 nhóm — **không đặt ngưỡng tay**:
+
+$$T^* = \arg\max_T \;\omega_0(T)\,\omega_1(T)\,[\mu_0(T)-\mu_1(T)]^2$$
+
+| Ký hiệu | Ý nghĩa |
+|---------|---------|
+| $\omega_0, \omega_1$ | Tỷ lệ nhóm "không tái mua" và "tái mua" tại ngưỡng $T$ |
+| $\mu_0, \mu_1$ | Trung bình `purchase_count` của 2 nhóm |
+| Quét | 500 ngưỡng từ min đến max của `purchase_count` |
+
+> **Ưu điểm vs Q2 cứng:** Q2 = median cố định không tính đến hình dạng phân phối thực tế. Otsu tối ưu hóa sự phân tách giữa 2 nhóm theo 
+--- markdown 17 ---
+## 5. Tóm tắt Notebook 1
+
+| Hạng mục | Kết quả |
+|----------|---------|
+| Dataset | 61,728 dòng × 20 cột |
+| Key | `(user_id, product_category)` |
+| Target | `repurchase` (0/1) — Otsu $T^*$ = 4.02 lần |
+| Class imbalance | **32.8%** tái mua, **67.2%** không tái mua |
+| Missing values | `avg_rating` ~28% NaN → impute median 4.0 tại NB3 |
+| Giá trị đặc biệt | `cart_rate` có thể > 1 (hợp lệ — direct-to-cart) |
+| Anti-leakage | `purchase_count` ✅ đã xóa khỏi feature matrix |
+| Primary metric | **F1-Score** |
+| Output | `data/synthetic_data.csv` ✅ |
+
+**→ Notebook 2:** EDA đầy đủ — phân phối, correlation, outlier, feature importance sơ bộ
+--- markdown 18 ---
+
+# 📦 Notebook 1 — Data Generation & Understanding
+
+**Mục tiêu notebook:**
+- Load `pred_repurchase_dataset.csv` (đã xử lý anti-leakage) và kiểm tra schema
+- Hiểu cấu trúc 20 cột và ý nghĩa business của từng cột
+- Mô tả bài toán dự đoán tái mua hàng (binary classification)
+- Giải thích nguồn gốc nhãn `repurchase` (Otsu thresholding T*=4.02 trên purchase_count)
+- Lưu bản copy vào `data/synthetic_data.csv` để EDA ở Notebook 2
+
+---
+
+## 🗺️ Lộ trình 15 bước — Pipeline ML đầy đủ
+
+| # | Bước | Notebook |
+|:-:|------|----------|
+| **1** | **Đặt vấn đề** | **📌 NB1** |
+| **2** | **Thu thập dữ liệu** | **📌 NB1** |
+| 3 | Tiền xử lý & EDA | NB2 |
+| 4 | Định nghĩa Target | NB2 |
+| 5 | Feature Engineering | NB3 |
+| 6 | Feature Selection | NB3 |
+| 7 | Train/Test Split + Scale | NB3 |
+| 8 | Chọn mô hình | NB3 |
+| 9 | Huấn luyện | NB3 |
+| 10 | Đánh giá baseline | NB3 |
+| 11 | Feature Reduction | NB3 |
+| 12 | So sánh & Phân tích sâu | NB4 |
+| 13 | Kết luận Model tốt nhất | NB4 |
+| 14 | Threshold Optimization | NB4 |
+| 15 | KPI Check | NB4 |
+
+> 💡 **Notebook này bao phủ: Bước 1 & 2 / 15**
+--- markdown 20 ---
+
+---
+## 📌 Bước 1 / 15 — Đặt vấn đề & Mô tả Bài toán Business
+
+### ❓ Câu hỏi kinh doanh cốt lõi
+
+> **"Dựa trên hành vi tương tác của khách hàng với một category sản phẩm,**  
+> **khách có quay lại mua thêm sản phẩm trong chính category đó không?"**
+
+Một nền tảng e-commerce Việt Nam muốn **cá nhân hóa chiến lược giữ chân khách hàng** theo từng danh mục sản phẩm. Thay vì chạy khuyến mãi đại trà, họ cần biết: *"Khách hàng X có khả năng mua lại trong danh mục Y không?"*
+
+---
+
+### 🏢 Bối cảnh & Business Impact
+
+- **Vấn đề:** ~67% khách không quay lại category sau lần mua đầu → chi phí acquisition cao bị lãng phí
+- **Giải pháp:** Dự đoán sớm khách nào có khả năng tái mua category → gửi voucher/reminder đúng người
+- **ROI:** Gửi voucher đại trà tốn 30,000 VNĐ/người × toàn bộ khách; nếu target đúng → chỉ gửi ~33% → tiết kiệm ~67% chi phí CRM
+
+| Dự đoán | Thực tế | Hành động | Hệ quả |
+|---------|---------|-----------|--------|
+| 1 (tái mua) | 1 ✅ | Gửi voucher loyalty → giữ chân | Hiệu quả cao |
+| 1 (tái mua) | 0 ❌ | Voucher gửi nhầm | Chi phí marketing lãng phí |
+| 0 (không tái mua) | 1 ❌ | Không gửi gì | Bỏ lỡ cơ hội upsell → mất doanh thu |
+
+---
+
+### 🔍 Hiểu đúng "Tái mua" trong bài toán n
+--- markdown 22 ---
+
+---
+## 📌 Bước 2 / 15 — Thu thập dữ liệu (Data Collection)
+
+**Nguồn dữ liệu:** `pred_repurchase_dataset.csv` — E-commerce behavioral dataset
+
+### Cấu trúc dữ liệu
+
+> **Mỗi dòng = 1 user × 1 category** — aggregate toàn bộ hành vi của user trong category đó.
+
+| Nhóm cột | Ví dụ | Vai trò |
+|----------|-------|---------|
+| **Behavioral** | `total_view`, `total_click`, `total_cart`, `total_wishlist` | Tín hiệu hành vi trong category |
+| **Purchase aggregate** | `avg_purchase_value`, `avg_price`, `avg_discount` | Thống kê giá/mua trong category |
+| **Category profile** | `category_share`, `user_total_categories`, `unique_brands` | Mức độ tập trung vào category |
+| **User profile** | `age`, `gender`, `membership_tier`, `region` | Đặc điểm demographics |
+| **Rating** | `avg_rating` | Hài lòng trung bình với sản phẩm trong category (~28% missing) |
+| **Target** | `repurchase` | 0/1 — tái mua trong category không? |
+
+**Quy mô:** 61,728 cặp (user, category) × 20 cột  
+**Class distribution:** 67.2% không tái mua (label=0) · 32.8% tái mua (label=1)  
+**Otsu T\* = 4.02** → `purchase_count ≥ 5` → label=1
+
+**Anti-leakage đã xử lý:**
+- `purchase_count` → **ĐÃ XÓA** (dùng để tạo nhãn — nếu giữ = bi
+--- markdown 30 ---
+## 3. Giải thích nguồn gốc nhãn `repurchase`
+--- markdown 31 ---
+### 🏷️ Cơ chế gán nhãn: Otsu Thresholding trực tiếp trên `purchase_count`
+
+Nhãn `repurchase` được xây dựng **hoàn toàn tự động** từ biến `purchase_count` — số lần khách hàng đã mua trong cùng `product_category` — qua 2 bước chặt chẽ về mặt thống kê.
+
+---
+
+#### Tại sao chọn `purchase_count`?
+
+`purchase_count` là tín hiệu **trực tiếp và mạnh nhất** về hành vi tái mua:
+- Mỗi dòng = 1 cặp `(user_id, product_category)` duy nhất
+- `purchase_count` = số lần thực sự đã mua trong category đó
+- Khách mua nhiều lần → **định nghĩa nghiệp vụ** của hành vi tái mua (RFM Frequency)
+
+---
+
+#### Bước 1 — Otsu Thresholding tự động (Otsu, 1979)
+
+Thuật toán **Otsu** tìm ngưỡng $T^*$ tối đa hoá **inter-class variance** giữa 2 nhóm — **không đặt ngưỡng tay**:
+
+$$T^* = \arg\max_T \;\omega_0(T)\,\omega_1(T)\,[\mu_0(T)-\mu_1(T)]^2$$
+
+| Ký hiệu | Ý nghĩa |
+|---------|---------|
+| $\omega_0, \omega_1$ | Tỷ lệ nhóm "không tái mua" và "tái mua" tại ngưỡng $T$ |
+| $\mu_0, \mu_1$ | Trung bình `purchase_count` của 2 nhóm |
+| Quét | 500 ngưỡng từ min đến max của `purchase_count` |
+
+> **Ưu điểm vs Q2 cứng:** Q2 = median cố định không tính đến hình dạng phân phối thực tế. Otsu tối ưu hóa sự phân tách giữa 2 nhóm theo 
+--- markdown 36 ---
+## 5. Tóm tắt Notebook 1
+
+| Hạng mục | Kết quả |
+|----------|---------|
+| Dataset | 61,728 dòng × 20 cột |
+| Key | `(user_id, product_category)` |
+| Target | `repurchase` (0/1) — Otsu $T^*$ = 4.02 lần |
+| Class imbalance | **32.8%** tái mua, **67.2%** không tái mua |
+| Missing values | `avg_rating` ~28% NaN → impute median 4.0 tại NB3 |
+| Giá trị đặc biệt | `cart_rate` có thể > 1 (hợp lệ — direct-to-cart) |
+| Anti-leakage | `purchase_count` ✅ đã xóa khỏi feature matrix |
+| Primary metric | **F1-Score** |
+| Output | `data/synthetic_data.csv` ✅ |
+
+**→ Notebook 2:** EDA đầy đủ — phân phối, correlation, outlier, feature importance sơ bộ
+=== notebooks/3_Model_Building.ipynb
+--- code 1 ---
+# ============================================================
+# SECTION 0: Import thư viện
+# ============================================================
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import joblib
+import time
+import warnings
+warnings.filterwarnings('ignore')
+
+from pathlib import Path
+
+# Sklearn
+from sklearn.model_selection   import train_test_split, cross_val_score
+from sklearn.preprocessing     import LabelEncoder, StandardScaler
+from sklearn.impute             import SimpleImputer
+from sklearn.linear_model      import LogisticRegression
+from sklearn.ensemble          import RandomForestClassifier
+from sklearn.feature_selection import mutual_info_classif
+from sklearn.metrics           import (
+    accuracy_score, precision_score, recall_score, f1_score,
+    roc_auc_score, classification_report, confusion_matrix,
+    ConfusionMatrixDisplay, average_precision_score,
+    roc_curve, precision_recall_curve
+)
+
+# LightGBM
+from lightgbm import LGBMClassifier
+import lightgbm as lgb
+
+# --- Thiết lập ---
+RANDOM_STATE = 42
+pd.set_option('display.float_format', '{:,.4f}'.format)
+plt.rcParams.update({'figure.dpi': 120, 'axes.spine
+--- markdown 10 ---
+
+---
+## 📌 Bước 6 / 15 — Feature Selection (Correlation Filter + Mutual Information)
+
+> **Mục tiêu:** Từ 31 features (16 raw + 15 derived), xác định những features có đóng góp thực sự cho việc dự đoán `repurchase`. Bước này chạy phân tích nhưng **KHÔNG drop feature tại đây** — toàn bộ 31 features được giữ lại để model tự học trong Bước 9.
+
+**Tiêu chí đánh giá:**
+1. **Correlation với target** — Pearson (numeric) / Point-biserial
+2. **Mutual Information** — đo lường phi tuyến (nonlinear dependency)
+3. **Pairwise correlation** — phát hiện multicollinearity (r > 0.85)
+
+> 📝 **Ghi nhớ:** Feature Selection có thể thực hiện theo 2 cách:
+> - **Filter method** (ở đây): thống kê trước khi train
+> - **Embedded method**: dùng feature importance SAU khi train (xem Bước 10-11 ở NB3 + NB4)
+
+--- code 13 ---
+
+# ============================================================
+#
+# Split trực tiếp từ df_featured (24 features) — sau Feature Engineering & Feature Selection
+#
+# Anti-Leakage (bắt buộc):
+#   scaler_full.fit_transform(X_train) : Scaler học mean/std từ Train
+#   scaler_full.transform(X_val)       : Áp dụng cùng mean/std lên Val → không rò rỉ
+#   scaler_full.transform(X_test)      : Áp dụng cùng mean/std lên Test → không rò rỉ
+# ============================================================
+
+X_full = df_featured.drop(columns=['repurchase'])
+y      = df_featured['repurchase']
+
+# Lần 1: tách Test 15% ra trước
+X_temp, X_test, y_temp, y_test = train_test_split(
+    X_full, y,
+    test_size=0.15,
+    random_state=RANDOM_STATE,
+    stratify=y
+)
+
+# Lần 2: từ 85% còn lại, tách tiếp Validation ≈ 15% tổng (0.15/0.85 ≈ 0.1765)
+X_train, X_val, y_train, y_val = train_test_split(
+    X_temp, y_temp,
+    test_size=0.1765,
+    random_state=RANDOM_STATE,
+    stratify=y_temp
+)
+
+n_total = len(X_full)
+print('✅ Train / Validation / Test Split (70% / 15% / 15%) — Stratified')
+print(f'   {"Tập":<12} {"Dòng":>8}  {"Tỷ lệ":>7}  Class dist')
+print(f'   {"─"*60}')
+for split_name, X_s, y_s in [('Train', X_train, 
+--- code 27 ---
+# ============================================================
+# LightGBM: Threshold tối ưu — dùng Validation set (ĐA SỬA LỖI ĐỒNG BỘ INDEX)
+# ============================================================
+lgbm_val_probs = lgbm_model.predict_proba(X_val)[:, 1]
+
+precisions, recalls, thresholds = precision_recall_curve(y_val, lgbm_val_probs)
+
+# Tính F1 sạch tương ứng hoàn toàn với số lượng phần tử của mảng thresholds
+f1_scores = (2 * precisions[:-1] * recalls[:-1]) / (precisions[:-1] + recalls[:-1] + 1e-8)
+best_idx = np.argmax(f1_scores)
+lgbm_opt_thresh = float(thresholds[best_idx])
+
+print(f'\n🎯 OPTIMAL THRESHOLD LightGBM (maximize F1 trên Validation set):')
+print(f'   lgbm_opt_thresh = {lgbm_opt_thresh:.4f}  (vs default 0.5)')
+print(f'   F1  (Val)       = {f1_scores[best_idx]:.4f}')
+# [SỬA LỖI TRÍCH XUẤT]: Cắt đuôi [:-1] để lấy đúng vị trí tương ứng của Precision và Recall
+print(f'   Precision (Val) = {precisions[:-1][best_idx]:.4f}')
+print(f'   Recall    (Val) = {recalls[:-1][best_idx]:.4f}')
+print(f'   ✅ Dùng X_val để tìm threshold — không rò rỉ thông tin từ test set')
+
+# Plot F1 vs Threshold (trên Validation set)
+fig, ax = plt.subplots(figsize=(8, 4))
+ax.plot(thresholds, f1_scores,
+--- code 32 ---
+
+# ============================================================
+# Lưu tất cả models, 3 optimal thresholds và dữ liệu val/test
+# ============================================================
+
+# Models
+joblib.dump(lgbm_model, MODELS_DIR / 'best_model.pkl')
+joblib.dump(xgb_model,  MODELS_DIR / 'xgb_model.pkl')
+joblib.dump(lr_model,   MODELS_DIR / 'lr_model.pkl')
+
+# 3 Optimal Thresholds — mỗi model có ngưỡng tối ưu riêng (tìm trên Val)
+joblib.dump(lr_opt_thresh,    MODELS_DIR / 'lr_optimal_threshold.pkl')
+joblib.dump(xgb_opt_thresh,   MODELS_DIR / 'xgb_optimal_threshold.pkl')
+joblib.dump(lgbm_opt_thresh,  MODELS_DIR / 'optimal_threshold.pkl')   # backward compat alias
+
+# Test data + Val data (NB4 dùng Test; Val lưu kèm để debug nếu cần)
+joblib.dump({
+    'X_test'   : X_test,         # 24 features (unscaled) — XGBoost / LightGBM
+    'X_test_lr': X_test_scaled,  # 24 features (scaled)   — Logistic Regression
+    'y_test'   : y_test,
+    'X_val'    : X_val,          # Val unscaled (lưu kèm để debug)
+    'X_val_lr' : X_val_scaled,   # Val scaled   (lưu kèm để debug)
+    'y_val'    : y_val,
+}, MODELS_DIR / 'test_data.pkl')
+
+print('✅ Models đã lưu:')
+print(f'   models/best_model.pkl          
+--- code 33 ---
+
+# ============================================================
+# Export Prediction CSVs — Test set (15%) cho Backend / UI
+#
+# 3 file xuất ra data/:
+#   predictions_lr.csv    ← Logistic Regression
+#   predictions_xgb.csv   ← XGBoost
+#   predictions_lgbm.csv  ← LightGBM
+#
+# Cấu trúc mỗi file (~9,259 dòng):
+#   user_id, product_category    ← keys định danh
+#   [13 raw features]            ← age, total_view, cart_rate, avg_rating...
+#   [11 derived features]        ← wishlist_to_view_ratio, brand_loyalty_score...
+#   repurchase                   ← nhãn thực tế (0/1)
+#   repurchase_prob              ← xác suất tái mua (0.0–1.0)
+#   repurchase_pred              ← dự đoán nhị phân (0/1) dùng theta*
+#   threshold_used               ← giá trị theta* từ Validation set
+#   model                        ← tên model
+#   split                        ← 'test'
+# ============================================================
+
+# Meta columns (user_id + product_category) — lấy theo index test
+meta_test = df.loc[X_test.index, ['user_id', 'product_category']].reset_index(drop=True)
+
+# Full feature matrix + actual label (24 features + repurchase) — test rows
+feat_test = df_featured.loc[X_test.index].reset
