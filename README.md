@@ -2,15 +2,15 @@
 
 ## Project Summary
 
-Trong lĩnh vực thương mại điện tử và bán lẻ hiện đại, việc hiểu hành vi khách hàng đóng vai trò quan trọng trong việc giữ chân người dùng, tối ưu chiến dịch marketing và gia tăng doanh thu. Tuy nhiên, nhiều doanh nghiệp sở hữu lượng lớn dữ liệu tương tác khách hàng nhưng chưa khai thác hiệu quả để dự đoán khả năng quay lại mua hàng.
+## Project Summary
 
-Dự án này mô phỏng một bài toán thực tế trong lĩnh vực Retail Analytics, tập trung vào việc phân tích hành vi khách hàng và xây dựng hệ thống dự đoán khả năng tái mua (Customer Repurchase Prediction) dựa trên dữ liệu tương tác với sản phẩm.
+Trong lĩnh vực thương mại điện tử, việc dự đoán khả năng khách hàng quay lại mua hàng giúp doanh nghiệp tối ưu chiến lược marketing, cá nhân hóa trải nghiệm và gia tăng doanh thu.
 
-Khác với các bài toán học máy sử dụng nhãn có sẵn, dự án xây dựng biến mục tiêu hoàn toàn từ dữ liệu hành vi khách hàng. Các tín hiệu như lượt xem sản phẩm, lượt nhấp chuột, thêm vào giỏ hàng, danh sách yêu thích, mức độ trung thành thương hiệu, giá trị mua sắm và nhiều đặc trưng hành vi khác được sử dụng để đánh giá khả năng tái mua của khách hàng.
+Đây là một dự án Machine Learning mô phỏng bài toán thực tế trong Retail Analytics, tập trung vào việc phân tích hành vi khách hàng và dự đoán khả năng tái mua dựa trên dữ liệu tương tác sản phẩm. Dự án bao gồm toàn bộ quy trình từ Data Preprocessing, Feature Engineering, Label Construction, Model Training đến Dashboard Visualization.
 
-Quy trình xây dựng nhãn áp dụng phương pháp Information Content Weighting (ICW) kết hợp thuật toán Otsu Thresholding nhằm tự động xác định ngưỡng phân tách tối ưu giữa nhóm khách hàng có khả năng tái mua và nhóm khách hàng không có khả năng tái mua mà không cần thiết lập ngưỡng thủ công.
+Một điểm nổi bật của dự án là biến mục tiêu không được gán nhãn thủ công mà được xây dựng từ dữ liệu hành vi khách hàng thông qua phương pháp Information Content Weighting (ICW) kết hợp thuật toán Otsu Thresholding để xác định ngưỡng phân loại tối ưu.
 
-Sau khi hoàn thành quá trình Feature Engineering và Label Construction, nhiều mô hình Machine Learning được huấn luyện và đánh giá nhằm lựa chọn mô hình tối ưu cho bài toán dự đoán. Kết quả được trực quan hóa thông qua Streamlit Dashboard giúp người dùng dễ dàng khám phá dữ liệu, phân tích hành vi khách hàng và theo dõi kết quả dự đoán.
+Kết quả được trực quan hóa bằng Streamlit Dashboard, hỗ trợ theo dõi hành vi khách hàng, phân tích đặc trưng và hiển thị kết quả dự đoán một cách trực quan.
 
 ### Business Problem
 
