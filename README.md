@@ -45,8 +45,7 @@ Các cột bổ sung có thể có và được sử dụng để hiển thị d
 ## Chu trình dữ liệu trong repository
 
 - `data/raw/retail_personalization_dataset.csv`: dữ liệu gốc cá nhân hóa bán lẻ.
-- `data/raw/online_retail_II.csv`: dữ liệu nguồn ban đầu khác của dự án.
-- `data/processed/predictions_lgbm (1).csv`: tệp dữ liệu đã tạo sẵn chứa nhãn dự đoán tái mua, phù hợp để upload vào dashboard.
+- `data/processed/predictions_lgbm (1).csv`: Sau khi dùng thuật toán XGBooost để machine learning có chúa trường kết quả dự doán cho máy học
 
 ---
 
@@ -85,8 +84,7 @@ Retail-Customer-Churn-Analysis-master/
 ├── requirements.txt
 ├── data/
 │   ├── raw/
-│   │   ├── online_retail_II.csv
-│   │   └── retail_personalization_dataset.csv
+│      └── retail_personalization_dataset.csv
 │   └── processed/
 │       ├── confusion_matrix_test.png
 │       ├── derived_features (1).csv
@@ -108,8 +106,6 @@ Retail-Customer-Churn-Analysis-master/
 │   ├── next_product_category_lgbm_model.joblib
 │   ├── next_product_category_rf_model.joblib
 │   ├── optimal_threshold.pkl
-│   ├── preprocessor.pkl
-│   ├── product_category_model.joblib
 │   ├── test_data.pkl
 │   ├── test_product_category_model.py
 │   ├── train_model.py
@@ -136,19 +132,12 @@ Retail-Customer-Churn-Analysis-master/
 
 ---
 
-## Phần mở rộng
 
-- Nếu cần, có thể bổ sung logic dự đoán trực tiếp bằng model đã load.
-- Nếu bạn dùng file `predictions_lgbm.csv` khác tên, hãy đổi tên hoặc sửa đường dẫn trong README/ notebook cho phù hợp.
+## Dashboard Predict Category Customer
 
----
 
-## Ảnh demo
 
-Phần này dành để chèn ảnh minh họa dashboard. Bạn có thể thêm ảnh vào repository và dùng đường dẫn bên dưới.
+<img width="1919" height="1023" alt="image" src="https://github.com/user-attachments/assets/88204c43-7093-4f50-a423-3c9156d47bea" />
 
-![Ảnh demo dashboard](src/dashboard_preview.png)
 
-*Ghi chú: ảnh sẽ hiển thị khi file ảnh `src/dashboard_preview.png` được thêm vào repo.*
 
----
